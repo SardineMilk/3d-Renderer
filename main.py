@@ -94,6 +94,7 @@ def process_face(face):
     return processed_face
 
 
+
 def project_vertex(vertex):
     x, y, z = vertex
     x_2d = ((x / z) + 1) * centre_x
@@ -173,8 +174,7 @@ pygame.event.set_grab(True)
 
 camera = Camera(Vector3(0.0, -5.0, 0.0), 0, 0, 0)
 
-mesh = read_obj_file("suzanne.obj")
-
+mesh = read_obj_file("teapot.obj")
 
 running = True
 while running:
@@ -199,21 +199,22 @@ while running:
         fps = str(round(1000/delta, 2))
     except ZeroDivisionError:
         fps = ">1000"
-    print(fps)
 
     camera = move_camera()
 
     mesh = sorted(mesh, key=lambda face: (face.centroid-camera.position).length(), reverse=True)
     processed_mesh = [process_face(face) for face in mesh] 
-    processed_mesh = filter(None, processed_mesh)
+    processed_mesh = list(filter(None, processed_mesh))
 
     # Render
     screen.fill((32, 32, 32))
     for face, colour in processed_mesh:
         pygame.gfxdraw.filled_polygon(screen, face, colour)
-        pygame.gfxdraw.aapolygon(screen, face, (127, 127, 127))
 
     pygame.display.flip()
     clock.tick(MAX_FPS)
+
+    # Print data
+    print(f"{fps}, {len(processed_mesh)}/{len(mesh)}")
 
 pygame.quit()
