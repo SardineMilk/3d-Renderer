@@ -1,7 +1,8 @@
-import numpy as np
+
 from math import sin, cos, radians
 
 import pygame
+import pygame.gfxdraw
 from pygame.locals import *
 from pygame.math import *
 from pygame import gfxdraw
@@ -153,6 +154,10 @@ def get_face_centroid(triangle):
     return centroid
 
 
+def get_face_dist(face):
+    return (face.centroid-camera.position).length()
+
+
 # Constants
 WIDTH, HEIGHT = 800, 800  # Base resolution for display
 FRUSTUM_TOLERANCE = 0.25
@@ -165,20 +170,22 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 centre_x, centre_y = screen.get_width()/2, screen.get_height()/2
 clock = pygame.time.Clock()
+
+# Misc variables
 time = 0
 frames = 0
+outline = True
 
 # Mouse lock
 pygame.mouse.set_visible(False)
 pygame.event.set_grab(True)
 
-camera = Camera(Vector3(0.0, -5.0, 0.0), 0, 0, 0)
+camera = Camera(Vector3(0.0, 0.0, 0.0), 0, 0, 0)
 
 mesh = read_obj_file("teapot.obj")
 
 running = True
 while running:
-    frames += 1
     # Player logic
     for event in pygame.event.get():  # Movement breaks without this for some reason
         if event.type == MOUSEMOTION:
@@ -186,23 +193,25 @@ while running:
             camera.yaw += mouse_dx * MOUSE_SENSITIVITY
             camera.pitch += mouse_dy * MOUSE_SENSITIVITY
             camera.pitch = clamp(camera.pitch, -90, 90)  # Clamp camera pitch to directly up and down
-    keys = pygame.key.get_pressed()
 
-    if keys[K_ESCAPE]:
-        running = False
+        if event.type == KEYDOWN:
+            if event.key == K_ESCAPE:
+                running = False
+            if event.key == K_e:
+                outline = not outline
+
+    keys = pygame.key.get_pressed()
 
     # Time and frame rate
     current_time = pygame.time.get_ticks()
     delta = current_time - time
     time = current_time
-    try:
-        fps = str(round(1000/delta, 2))
-    except ZeroDivisionError:
-        fps = ">1000"
+
+    fps = round(clock.get_fps(), 2)
 
     camera = move_camera()
 
-    mesh = sorted(mesh, key=lambda face: (face.centroid-camera.position).length(), reverse=True)
+    mesh = sorted(mesh, key=get_face_dist, reverse=True)  # Sort based on distance from camera to face centroid
     processed_mesh = [process_face(face) for face in mesh] 
     processed_mesh = list(filter(None, processed_mesh))
 
@@ -210,6 +219,8 @@ while running:
     screen.fill((32, 32, 32))
     for face, colour in processed_mesh:
         pygame.gfxdraw.filled_polygon(screen, face, colour)
+        if outline:
+            pygame.gfxdraw.aapolygon(screen, face, (127, 127, 127))
 
     pygame.display.flip()
     clock.tick(MAX_FPS)
