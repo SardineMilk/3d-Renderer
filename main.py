@@ -119,6 +119,9 @@ def read_obj_file(file_name):
 
     for line in data:
         line = line.split(" ")  # Split at every space
+        
+        line = [x for x in line if x != " " and x != ""]  # Remove excess spaces
+
         if line[0] == "v":
             vertex = Vector3(float(line[1]), float(line[2]), float(line[3]))
             vertices.append(vertex)
@@ -127,16 +130,15 @@ def read_obj_file(file_name):
             # Discard the identifier
             face_data = line[1:]
             face = []
-            # Iterate throught the face data and append indices to face
+            # Iterate through the face data and append indices to face
             for indices in face_data:
-                index_list = indices.split("/")
-                face.append(int(index_list[0])-1)
+                if indices != "\n":
+                    index_list = indices.split("/")
+                    face.append(int(index_list[0])-1)
             faces.append(face)
 
     for face in faces:
-        i0, i1, i2 = face
-        v0, v1, v2 = vertices[i0], vertices[i1], vertices[i2]
-        triangle = [-v0, -v1, -v2]
+        triangle = [-vertices[i] for i in face]
         face_data = Face(triangle, (0, 127, 127))
         mesh.append(face_data)
 
@@ -182,7 +184,7 @@ pygame.event.set_grab(True)
 
 camera = Camera(Vector3(0.0, 0.0, 0.0), 0, 0, 0)
 
-mesh = read_obj_file("teapot.obj")
+mesh = read_obj_file("human.obj")
 
 running = True
 while running:
